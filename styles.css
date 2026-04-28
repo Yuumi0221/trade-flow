@@ -1,0 +1,664 @@
+/* styles.css */
+/* 交易指令工具样式 */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ========== 头部 ========== */
+.header {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header h1 {
+    font-size: 24px;
+    color: #2c3e50;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ========== 按钮 ========== */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: #fff;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: #fff;
+}
+
+.btn-success {
+    background: #27ae60;
+    color: #fff;
+}
+
+.btn-danger {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.btn-warning {
+    background: #f39c12;
+    color: #fff;
+}
+
+/* ========== 输入区 ========== */
+.input-section {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.input-panel label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.input-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* ========== 结果表格 ========== */
+.results-section {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.results-section h2 {
+    font-size: 18px;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.results-table th,
+.results-table td {
+    padding: 12px 8px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+.results-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+    position: sticky;
+    top: 0;
+}
+
+.results-table td {
+    font-size: 14px;
+}
+
+.results-table code {
+    background: #ecf0f1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: Consolas, Monaco, monospace;
+}
+
+.buy-row {
+    background: #fdedeb;
+}
+
+.sell-row {
+    background: #e8f4f8;
+}
+
+.buy-price {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+.sell-price {
+    color: #3498db;
+    font-weight: 600;
+}
+
+.empty-row td {
+    color: #999;
+    font-style: italic;
+}
+
+.pct {
+    color: #7f8c8d;
+    font-size: 11px;
+}
+
+.action-btn {
+    min-width: 60px;
+}
+
+/* ========== 反馈统计 ========== */
+.feedback-section {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.feedback-section h2 {
+    font-size: 18px;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.feedback-section h3 {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin: 15px 0 10px;
+}
+
+.feedback-panel {
+    max-width: 900px;
+}
+
+.feedback-header {
+    margin-bottom: 15px;
+}
+
+.feedback-header .form-group {
+    max-width: 400px;
+}
+
+.input-with-btn {
+    display: flex;
+    gap: 10px;
+}
+
+.input-with-btn .form-control {
+    flex: 1;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+/* 股票信息显示 */
+.stock-info {
+    background: #e8f4f8;
+    border: 1px solid #3498db;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.stock-info-item {
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.stock-info-item strong {
+    color: #3498db;
+    font-size: 16px;
+}
+
+/* 成交反馈产品表格 */
+.feedback-products-table {
+    border: 1px solid #eee;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.feedback-product-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    gap: 15px;
+}
+
+.feedback-product-row:last-child {
+    border-bottom: none;
+}
+
+.feedback-product-row:nth-child(even) {
+    background: #f8f9fa;
+}
+
+.feedback-product-name {
+    width: 150px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.feedback-product-assets {
+    width: 180px;
+    color: #7f8c8d;
+    font-size: 13px;
+}
+
+.feedback-product-input {
+    flex: 1;
+    min-width: 120px;
+}
+
+.feedback-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.feedback-result {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #27ae60;
+}
+
+.feedback-result h3 {
+    margin-top: 0;
+    color: #27ae60;
+}
+
+.feedback-output {
+    background: #fff;
+    padding: 15px;
+    border-radius: 4px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
+    margin: 10px 0 0;
+}
+
+/* ========== 模态框 ========== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    background: #f8f9fa;
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ========== 产品管理 ========== */
+.product-form h3 {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-bottom: 15px;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-row .form-group {
+    flex: 1;
+    min-width: 150px;
+    margin-bottom: 0;
+}
+
+.product-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 6px;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    gap: 15px;
+}
+
+.product-item:last-child {
+    border-bottom: none;
+}
+
+.product-item:nth-child(even) {
+    background: #f8f9fa;
+}
+
+.product-field {
+    flex: 1;
+}
+
+.product-field label {
+    display: block;
+    font-size: 11px;
+    color: #7f8c8d;
+    margin-bottom: 3px;
+}
+
+.product-field input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.product-field input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.product-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+/* ========== 消息提示 ========== */
+.message-box {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: slideIn 0.3s ease;
+    max-width: 300px;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.message.success {
+    background: #27ae60;
+}
+
+.message.error {
+    background: #e74c3c;
+}
+
+.message.warning {
+    background: #f39c12;
+}
+
+.message.info {
+    background: #3498db;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .header-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-buttons {
+        width: 100%;
+    }
+    
+    .header-buttons .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .form-row {
+        flex-direction: column;
+    }
+    
+    .form-row .form-group {
+        width: 100%;
+    }
+    
+    .form-row .btn {
+        width: 100%;
+    }
+    
+    .product-item {
+        flex-wrap: wrap;
+    }
+    
+    .product-field {
+        min-width: 45%;
+    }
+    
+    .feedback-product-row {
+        flex-wrap: wrap;
+    }
+    
+    .feedback-product-name {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .feedback-product-assets {
+        width: 50%;
+    }
+    
+    .feedback-product-input {
+        width: 48%;
+    }
+    
+    .stock-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .input-with-btn {
+        flex-direction: column;
+    }
+    
+    .feedback-actions {
+        flex-direction: column;
+    }
+    
+    .feedback-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
