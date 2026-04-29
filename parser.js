@@ -18,6 +18,17 @@ const Parser = {
 
         instruction = instruction.trim();
 
+        // 检查是否为"全卖"格式的特殊指令（如"贵州茅台全卖了吧"）
+        const fullSellMatch = instruction.match(/^(.+?)(全卖|都卖|清仓)(了|一下|吧|？|$)/);
+        if (fullSellMatch) {
+            return {
+                type: 'info_only',
+                direction: 'sell',
+                targetStockName: fullSellMatch[1].trim(),
+                rawInstruction: instruction
+            };
+        }
+
         // 提取操作方向（买/卖）
         const direction = this._extractDirection(instruction);
         if (!direction) {
@@ -202,6 +213,14 @@ const Parser = {
     validate(parseResult) {
         if (!parseResult) {
             return { valid: false, error: '无法解析指令' };
+        }
+
+        // info_only 类型只需要有股票名称即可
+        if (parseResult.type === 'info_only') {
+            if (!parseResult.targetStockName) {
+                return { valid: false, error: '未能识别股票名称' };
+            }
+            return { valid: true };
         }
 
         if (!parseResult.direction) {

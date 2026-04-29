@@ -151,8 +151,14 @@ const App = {
                 timestamp: new Date().toISOString()
             };
 
-            // 生成结果表格
-            this.renderResultsTable(parseResult, products, stockInfo);
+            // 根据指令类型生成不同结果
+            if (parseResult.type === 'info_only') {
+                // 只显示股票信息，不计算百分比和股数
+                this.renderStockInfoOnly(stockInfo);
+            } else {
+                // 生成完整结果表格
+                this.renderResultsTable(parseResult, products, stockInfo);
+            }
 
             // 更新成交反馈区域的股票信息
             this.updateFeedbackStockInfo(stockInfo);
@@ -277,6 +283,40 @@ const App = {
     },
 
     /**
+     * 渲染只含股票信息的表格（用于"全卖"等不计算股数的指令）
+     */
+    renderStockInfoOnly(stockInfo) {
+        const thead = document.getElementById('resultsTableHead');
+        thead.innerHTML = `
+            <tr>
+                <th>平台</th>
+                <th>证券代码</th>
+                <th>证券名称</th>
+                <th>现价(¥)</th>
+            </tr>
+        `;
+
+        const tbody = document.getElementById('resultsTableBody');
+        const platform = stockInfo.platform || API.getPlatform(stockInfo.code);
+        tbody.innerHTML = `
+            <tr class="sell-row">
+                <td>${platform}</td>
+                <td><code>${stockInfo.code}</code></td>
+                <td>${stockInfo.name}</td>
+                <td class="sell-price">¥${stockInfo.price.toFixed(2)}</td>
+            </tr>
+        `;
+
+        // 保存当前数据用于复制
+        this.state.currentResultData = {
+            parseResult: { type: 'info_only' },
+            stockInfo,
+            price: stockInfo.price,
+            platform
+        };
+    },
+
+    /**
      * 计算应买卖股数
      * 公式：股数 = (点数 × 产品净资产 × 0.01) / 现价 → 四舍五入到百位
      */
@@ -317,6 +357,7 @@ const App = {
         `;
         this.state.currentTrade = null;
         this.state.currentResultData = null;
+        this.state.currentStockInfo = null;
         
         // 清空成交反馈区域的股票信息
         document.getElementById('feedbackStockInfo').style.display = 'none';
@@ -522,6 +563,7 @@ const App = {
 
     /**
      * 处理计算成交反馈 - 直接使用已解析的股票信息
+     * 市值可选，如果没有填市值则不显示百分比
      */
     handleCalculateFeedback() {
         if (!this.state.currentStockInfo) {
@@ -534,32 +576,39 @@ const App = {
         
         // 获取所有产品的成交价和市值输入
         const feedbackData = [];
-        let hasValidInput = false;
+        let hasValidPriceInput = false;
         
         products.forEach(product => {
             const priceInput = document.getElementById(`feedback_price_${product.id}`);
             const marketValueInput = document.getElementById(`feedback_mv_${product.id}`);
             
-            if (priceInput && priceInput.value && marketValueInput && marketValueInput.value) {
+            // 至少需要成交价
+            if (priceInput && priceInput.value) {
                 const tradePrice = parseFloat(priceInput.value);
-                // 市值输入的是万位及以上，需要乘以10000转换为元
-                const marketValue = parseFloat(marketValueInput.value) * 10000;
                 
-                if (!isNaN(tradePrice) && tradePrice > 0 && !isNaN(marketValue) && marketValue > 0) {
-                    const percentage = (marketValue / product.netAssets) * 100;
-                    feedbackData.push({
+                if (!isNaN(tradePrice) && tradePrice > 0) {
+                    const item = {
                         productName: product.name,
-                        price: tradePrice,
-                        percentage: percentage,
-                        marketValue: marketValue
-                    });
-                    hasValidInput = true;
+                        price: tradePrice
+                    };
+                    
+                    // 如果填了市值，计算百分比
+                    if (marketValueInput && marketValueInput.value) {
+                        const marketValue = parseFloat(marketValueInput.value) * 10000;
+                        if (!isNaN(marketValue) && marketValue > 0) {
+                            item.percentage = (marketValue / product.netAssets) * 100;
+                            item.marketValue = marketValue;
+                        }
+                    }
+                    
+                    feedbackData.push(item);
+                    hasValidPriceInput = true;
                 }
             }
         });
 
-        if (!hasValidInput) {
-            this.showMessage('请至少输入一个产品的成交价和市值', 'warning');
+        if (!hasValidPriceInput) {
+            this.showMessage('请至少输入一个产品的成交价', 'warning');
             return;
         }
 
@@ -570,7 +619,11 @@ const App = {
         const actionText = direction === 'sell' ? '卖出' : '买入';
         let feedbackText = `${stockInfo.name}${actionText}\n`;
         feedbackData.forEach(item => {
-            feedbackText += `${item.productName} ${item.price.toFixed(2)} ${item.percentage.toFixed(2)}%\n`;
+            if (item.percentage !== undefined) {
+                feedbackText += `${item.productName} ${item.price.toFixed(2)} ${item.percentage.toFixed(2)}%\n`;
+            } else {
+                feedbackText += `${item.productName} ${item.price.toFixed(2)}\n`;
+            }
         });
 
         // 保存反馈记录
