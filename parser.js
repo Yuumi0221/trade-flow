@@ -126,10 +126,10 @@ const Parser = {
      */
     _extractPoints(instruction) {
         // 匹配模式：数字 + (个点|点|%) 或 数字%
-        // 如："一个点"、"1个点"、"0.5个点"、"2.5点"、"1%"等
+        // 如："一个点"、"1个点"、"半个点"、"2.5点"、"1%"等
         
-        // 先尝试中文数字（包含"两"）
-        const chineseMatch = instruction.match(/(一|二|两|三|四|五|六|七|八|九|十|二十|三十|百)个?点/);
+        // 先尝试中文数字
+        const chineseMatch = instruction.match(/(半|一|二|两|三|四|五|六|七|八|九|十|二十|三十|百)个?点/);
         if (chineseMatch) {
             const chineseNum = chineseMatch[1];
             const num = this._convertChineseToNumber(chineseNum);
@@ -159,7 +159,7 @@ const Parser = {
         const mapping = {
             '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5,
             '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
-            '二十': 20, '三十': 30
+            '二十': 20, '三十': 30, '半': 0.5,
         };
         return mapping[chineseNum] || null;
     },
