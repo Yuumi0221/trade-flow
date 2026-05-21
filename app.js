@@ -63,6 +63,7 @@ const App = {
         // 成交反馈事件
         document.getElementById('calculateFeedbackBtn').addEventListener('click', () => this.handleCalculateFeedback());
         document.getElementById('copyFeedbackBtn').addEventListener('click', () => this.handleCopyFeedback());
+        document.getElementById('clearFeedbackBtn').addEventListener('click', () => this.handleClearFeedback());
 
         // 回车快捷键
         document.getElementById('instructionInput').addEventListener('keydown', (e) => {
@@ -657,6 +658,22 @@ const App = {
         }).catch(() => {
             this.showMessage('复制失败', 'error');
         });
+    },
+
+    /**
+     * 清空成交反馈区域的输入
+     */
+    handleClearFeedback() {
+        const products = Storage.getProducts();
+        products.forEach(product => {
+            const priceInput = document.getElementById(`feedback_price_${product.id}`);
+            const marketValueInput = document.getElementById(`feedback_mv_${product.id}`);
+            if (priceInput) priceInput.value = '';
+            if (marketValueInput) marketValueInput.value = '';
+        });
+        // 隐藏反馈结果
+        document.getElementById('feedbackResult').style.display = 'none';
+        this.showMessage('已清空成交反馈输入', 'success');
     },
 
     // ========== 导出功能 ==========

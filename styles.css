@@ -101,6 +101,24 @@ body {
     color: #fff;
 }
 
+.btn-github {
+    background: #535353;
+    color: #fff;
+    text-decoration: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+}
+
+.btn-github:hover {
+    background: #353535;
+    color: #fff;
+}
+
 /* ========== 输入区 ========== */
 .input-section {
     background: #fff;

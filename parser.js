@@ -19,7 +19,7 @@ const Parser = {
         instruction = instruction.trim();
 
         // 检查是否为"全卖"格式的特殊指令（如"贵州茅台全卖了吧"）
-        const fullSellMatch = instruction.match(/^(.+?)(全卖|都卖|清仓)(了|一下|吧|？|$)/);
+        const fullSellMatch = instruction.match(/^(.+?)(全卖|全部卖|全部都卖|都卖|清仓)(掉|了|一下|吧|？|$)/);
         if (fullSellMatch) {
             return {
                 type: 'info_only',
@@ -93,9 +93,11 @@ const Parser = {
         const pointMatch = instruction.match(/点(.+)$/);
         if (pointMatch && pointMatch[1]) {
             const potentialName = pointMatch[1].trim();
+            // 去除开头的语气助词/连接词，如"的"、"了"、"吧"等
+            const cleanedName = potentialName.replace(/^(的|了|吧|啊|呀|嘛|呢|是|有)\s*/, '');
             // 排除数字和其他符号
-            if (!/^\d/.test(potentialName) && potentialName.length >= 2) {
-                return potentialName;
+            if (!/^\d/.test(cleanedName) && cleanedName.length >= 2) {
+                return cleanedName;
             }
         }
         
