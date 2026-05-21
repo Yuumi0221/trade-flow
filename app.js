@@ -231,9 +231,12 @@ const App = {
         
         const priceClass = parseResult.direction === 'buy' ? 'buy-price' : 'sell-price';
 
+        // 格式化证券代码：英文字母+数字格式只显示数字部分
+        const displayCode = this._formatStockCode(stockInfo.code);
+
         let cellsHtml = `
             <td>${platform}</td>
-            <td><code>${stockInfo.code}</code></td>
+            <td><code style="cursor:pointer" onclick="App.copyToClipboard('${displayCode}')" title="点击复制">${displayCode}</code></td>
             <td>${stockInfo.name}</td>
             <td class="${priceClass}">¥${price.toFixed(2)}</td>
             <td>${referencePercentage.toFixed(2)}%</td>
@@ -243,7 +246,7 @@ const App = {
         selectedProducts.forEach(product => {
             const quantity = productQuantities[product.id];
             const pct = this.calculatePercentage(quantity, price, product.netAssets);
-            cellsHtml += `<td><strong>${quantity}</strong><br><small class="pct">${pct.toFixed(2)}%</small></td>`;
+            cellsHtml += `<td><strong style="cursor:pointer" onclick="App.copyToClipboard('${quantity}')" title="点击复制">${quantity}</strong><br><small class="pct">${pct.toFixed(2)}%</small></td>`;
         });
 
         row.innerHTML = cellsHtml;
@@ -710,6 +713,28 @@ const App = {
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
+    },
+
+    // ========== 辅助方法 ==========
+
+    /**
+     * 格式化证券代码：英文字母+数字格式只显示数字部分
+     * 如 "sh600000" -> "600000"，纯数字则原样返回
+     */
+    _formatStockCode(code) {
+        const match = code.match(/^[a-zA-Z]+(\d+)$/);
+        return match ? match[1] : code;
+    },
+
+    /**
+     * 复制文本到剪贴板
+     */
+    copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            this.showMessage('已复制: ' + text, 'success');
+        }).catch(() => {
+            this.showMessage('复制失败', 'error');
+        });
     },
 
     // ========== 消息提示 ==========
