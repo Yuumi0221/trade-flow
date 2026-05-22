@@ -302,10 +302,11 @@ const App = {
 
         const tbody = document.getElementById('resultsTableBody');
         const platform = stockInfo.platform || API.getPlatform(stockInfo.code);
+        const displayCode = this._formatStockCode(stockInfo.code);
         tbody.innerHTML = `
             <tr class="sell-row">
                 <td>${platform}</td>
-                <td><code>${stockInfo.code}</code></td>
+                <td><code style="cursor:pointer" onclick="App.copyToClipboard('${displayCode}')" title="点击复制">${displayCode}</code></td>
                 <td>${stockInfo.name}</td>
                 <td class="sell-price">¥${stockInfo.price.toFixed(2)}</td>
             </tr>
