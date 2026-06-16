@@ -249,15 +249,7 @@ const API = {
     getMockStockInfo(stockName) {
         // 模拟一些常见股票
         const mockStocks = {
-            '腾讯控股': { code: 'hk00700', name: '腾讯控股', price: 380.00 },
-            '阿里巴巴': { code: 'hk09988', name: '阿里巴巴', price: 85.50 },
-            '贵州茅台': { code: 'sh600519', name: '贵州茅台', price: 1680.00 },
-            '宁德时代': { code: 'sz300750', name: '宁德时代', price: 215.00 },
-            '比亚迪': { code: 'sz002594', name: '比亚迪', price: 265.00 },
-            '中国平安': { code: 'sh601318', name: '中国平安', price: 48.50 },
-            '招商银行': { code: 'sh600036', name: '招商银行', price: 35.20 },
-            '五粮液': { code: 'sz000858', name: '五粮液', price: 145.00 },
-            '美的集团': { code: 'sz000333', name: '美的集团', price: 58.00 }
+            '腾讯控股': { code: 'hk00700', name: '腾讯控股', price: 380.00 }
         };
         
         // 精确匹配
@@ -287,7 +279,7 @@ const API = {
         return {
             code: 'sh600000',
             name: stockName,
-            price: 10.00,
+            price: 10000.00,
             platform: '沪A'
         };
     },
