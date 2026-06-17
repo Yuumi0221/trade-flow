@@ -130,13 +130,14 @@ const App = {
             // 如果搜索结果没有价格，单独获取实时价格
             if (!stockInfo.price || stockInfo.price === 0) {
                 this.showMessage('正在获取实时价格...', 'info');
-                const realtimeInfo = await API.getRealtimePrice(stockInfo.code);
-                if (realtimeInfo && realtimeInfo.price) {
-                    stockInfo.price = realtimeInfo.price;
-                    // 更新平台信息（使用实时API返回的平台）
-                    if (realtimeInfo.platform) {
-                        stockInfo.platform = realtimeInfo.platform;
+                // 使用腾讯API重新获取价格
+                try {
+                    const price = await API._fetchPriceFromTencent(stockInfo.code);
+                    if (price && price > 0) {
+                        stockInfo.price = price;
                     }
+                } catch (e) {
+                    console.warn('获取实时价格失败:', e);
                 }
             }
 

@@ -19,6 +19,12 @@ const API = {
     
     // 东方财富搜索API - 获取代码
     EASTMONEY_SEARCH_API: 'https://searchapi.eastmoney.com/api/suggest/get?input=%E5%A4%96%E9%98%B2&type=14&token=D43BF722C8E33BDC906FB84D85E326E8&markettype=&mktnum=&jys=&classify=&securitytype=&status=&count=5',
+    
+    // 腾讯行情API
+    TENCENT_API: 'https://qt.gtimg.cn/q=',
+    
+    // 新浪行情API
+    SINA_API: 'https://hq.sinajs.cn/list=',
 
     /**
      * 根据股票代码获取平台名称
@@ -170,60 +176,34 @@ const API = {
                 }
             }
             
-            let quoteId = '';        // 如 "1.603083" 包含市场信息
             let stockCode = '';      // 如 "603083"
             let stockNameResult = stockName;
             let platform = '未知';
             
             if (searchData && searchData.QuotationCodeTable && searchData.QuotationCodeTable.Data && searchData.QuotationCodeTable.Data.length > 0) {
                 const result = searchData.QuotationCodeTable.Data[0];
-                quoteId = result.QuoteID || '';              // 如 "1.603083"
                 stockCode = result.Code || '';                // 如 "603083"
                 stockNameResult = result.Name || stockName;   // 如 "剑桥科技"
                 platform = result.SecurityTypeName || '未知'; // 如 "沪A"、"港股"
             }
             
             // 如果搜索不到代码，返回模拟数据
-            if (!quoteId || !stockCode) {
+            if (!stockCode) {
                 return this.getMockStockInfo(stockName);
             }
             
             // 标准化股票代码
             const code = this.normalizeCode(stockCode);
             
-            // 第二步：使用东方财富实时行情API获取价格
+            // 第二步：使用腾讯行情API获取实时价格（比东方财富实时行情API更稳定）
             let price = 0;
-            const realtimeUrl = this.EASTMONEY_REALTIME_API + quoteId;
-            
             try {
-                let realtimeData;
-                try {
-                    realtimeData = await this.jsonpRequest(realtimeUrl);
-                } catch (e) {
-                    const realtimeResponse = await fetch(realtimeUrl, {
-                        headers: {
-                            'Referer': 'https://www.eastmoney.com/'
-                        }
-                    });
-                    realtimeData = await realtimeResponse.json();
-                }
-                
-                // 新接口返回格式: data.diff[0].f2, f2需要除以100
-                if (realtimeData && realtimeData.data && realtimeData.data.diff && realtimeData.data.diff[0]) {
-                    const stockData = realtimeData.data.diff[0];
-                    if (stockData.f2) {
-                        // f2最后两位是小数点后两位，如 16055 -> 160.55
-                        price = stockData.f2 / 100;
-                    }
-                    // 如果返回了名称和代码，也可以用返回的
-                    if (stockData.f14) stockNameResult = stockData.f14;
-                    if (stockData.f12) stockCode = stockData.f12;
-                }
+                price = await this._fetchPriceFromTencent(code);
             } catch (e) {
-                console.warn('获取实时价格失败:', e);
+                console.warn('腾讯API获取价格失败:', e);
             }
             
-            // 如果获取不到价格，使用模拟数据
+            // 如果腾讯API获取不到价格，使用模拟数据
             if (!price || price === 0) {
                 const mockInfo = this.getMockStockInfo(stockName);
                 price = mockInfo.price;
@@ -244,12 +224,72 @@ const API = {
     },
     
     /**
+     * 从腾讯行情API获取单只股票实时价格
+     * @param {string} code - 标准化股票代码，如 sh600519
+     * @returns {Promise<number>} - 价格
+     */
+    async _fetchPriceFromTencent(code) {
+        const url = `https://qt.gtimg.cn/q=${code}`;
+        
+        // 尝试用fetch获取（需要设置Referer）
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Referer': 'https://qt.gtimg.cn/'
+                }
+            });
+            const text = await response.text();
+            return this._parseTencentPrice(text);
+        } catch (e) {
+            console.warn('fetch腾讯API失败，尝试JSONP:', e);
+            // 如果fetch失败，尝试JSONP方式
+            const jsonpUrl = `https://qt.gtimg.cn/q=${code}`;
+            const data = await this.jsonpRequest(jsonpUrl);
+            // JSONP返回的是字符串，需要处理
+            if (typeof data === 'string') {
+                return this._parseTencentPrice(data);
+            }
+            throw new Error('无法获取腾讯行情数据');
+        }
+    },
+    
+    /**
+     * 解析腾讯行情API返回的单个股票价格
+     * 返回格式: v_sh600519="1~贵州茅台~600519~1240.00~..."
+     * 第4个字段（索引3）是当前价
+     * @param {string} text - API返回的文本
+     * @returns {number} - 价格
+     */
+    _parseTencentPrice(text) {
+        if (!text) return 0;
+        const match = text.match(/"([^"]+)"/);
+        if (match) {
+            const fields = match[1].split('~');
+            if (fields.length >= 4) {
+                const price = parseFloat(fields[3]);
+                if (!isNaN(price) && price > 0) {
+                    return price;
+                }
+            }
+        }
+        return 0;
+    },
+    /**
      * 获取模拟股票信息（用于演示）
+     * 当所有API都失败时作为后备方案
      */
     getMockStockInfo(stockName) {
         // 模拟一些常见股票
         const mockStocks = {
-            '腾讯控股': { code: 'hk00700', name: '腾讯控股', price: 380.00 }
+            '腾讯控股': { code: 'hk00700', name: '腾讯控股', price: 380.00 },
+            '阿里巴巴': { code: 'hk09988', name: '阿里巴巴', price: 85.50 },
+            '贵州茅台': { code: 'sh600519', name: '贵州茅台', price: 1680.00 },
+            '宁德时代': { code: 'sz300750', name: '宁德时代', price: 215.00 },
+            '比亚迪': { code: 'sz002594', name: '比亚迪', price: 265.00 },
+            '中国平安': { code: 'sh601318', name: '中国平安', price: 48.50 },
+            '招商银行': { code: 'sh600036', name: '招商银行', price: 35.20 },
+            '五粮液': { code: 'sz000858', name: '五粮液', price: 145.00 },
+            '美的集团': { code: 'sz000333', name: '美的集团', price: 58.00 }
         };
         
         // 精确匹配
@@ -279,7 +319,7 @@ const API = {
         return {
             code: 'sh600000',
             name: stockName,
-            price: 10000.00,
+            price: 10.00,
             platform: '沪A'
         };
     },
