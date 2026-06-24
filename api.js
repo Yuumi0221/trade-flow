@@ -78,13 +78,19 @@ const API = {
     /**
      * 获取东方财富市场代码
      * @param {string} code - 股票代码，如 sh600000 或 600000
-     * @returns {string} - 东方财富格式如 1.600000 (1=上海, 0=深圳)
+     * @returns {string} - 东方财富格式如 1.600000 (1=上海, 0=深圳, 116=港股)
      */
     getEastmoneySecId(code) {
         if (!code) return '';
         
-        // 移除 sh/sz/bj/hk 前缀
+        // 检查是否有前缀
+        const prefix = code.substring(0, 2).toLowerCase();
         const pureCode = code.replace(/^(sh|sz|bj|hk)/i, '');
+        
+        // 港股市场代码为 116
+        if (prefix === 'hk') {
+            return '116.' + pureCode;
+        }
         
         // 判断市场
         if (pureCode.startsWith('6') || pureCode.startsWith('1') || pureCode.startsWith('5')) {
@@ -179,12 +185,14 @@ const API = {
             let stockCode = '';      // 如 "603083"
             let stockNameResult = stockName;
             let platform = '未知';
+            let exchange = '';       // 交易所代码，如 "HK"、"SH"、"SZ"
             
             if (searchData && searchData.QuotationCodeTable && searchData.QuotationCodeTable.Data && searchData.QuotationCodeTable.Data.length > 0) {
                 const result = searchData.QuotationCodeTable.Data[0];
                 stockCode = result.Code || '';                // 如 "603083"
                 stockNameResult = result.Name || stockName;   // 如 "剑桥科技"
                 platform = result.SecurityTypeName || '未知'; // 如 "沪A"、"港股"
+                exchange = (result.JYS || '').toUpperCase();  // 如 "HK"、"SH"、"SZ"
             }
             
             // 如果搜索不到代码，返回模拟数据
@@ -192,8 +200,15 @@ const API = {
                 return this.getMockStockInfo(stockName);
             }
             
-            // 标准化股票代码
-            const code = this.normalizeCode(stockCode);
+            // 根据交易所代码正确标准化股票代码
+            let code;
+            if (exchange === 'HK') {
+                // 港股：使用 hk 前缀
+                code = 'hk' + stockCode;
+            } else {
+                // A股：使用原有的标准化逻辑
+                code = this.normalizeCode(stockCode);
+            }
             
             // 第二步：使用腾讯行情API获取实时价格（比东方财富实时行情API更稳定）
             let price = 0;
@@ -281,12 +296,23 @@ const API = {
     getMockStockInfo(stockName) {
         // 模拟一些常见股票
         const mockStocks = {
+            // 港股
             '腾讯控股': { code: 'hk00700', name: '腾讯控股', price: 380.00 },
             '阿里巴巴': { code: 'hk09988', name: '阿里巴巴', price: 85.50 },
+            '美团': { code: 'hk03690', name: '美团', price: 118.00 },
+            '小米集团': { code: 'hk01810', name: '小米集团', price: 16.50 },
+            '京东': { code: 'hk09618', name: '京东', price: 105.00 },
+            '网易': { code: 'hk09999', name: '网易', price: 145.00 },
+            '百度': { code: 'hk09888', name: '百度', price: 88.00 },
+            '中国移动': { code: 'hk00941', name: '中国移动', price: 72.00 },
+            '建设银行': { code: 'hk00939', name: '建设银行', price: 5.80 },
+            '工商银行': { code: 'hk01398', name: '工商银行', price: 4.50 },
+            '香港交易所': { code: 'hk00388', name: '香港交易所', price: 280.00 },
+            '中国平安': { code: 'hk02318', name: '中国平安', price: 48.50 },
+            // A股
             '贵州茅台': { code: 'sh600519', name: '贵州茅台', price: 1680.00 },
             '宁德时代': { code: 'sz300750', name: '宁德时代', price: 215.00 },
             '比亚迪': { code: 'sz002594', name: '比亚迪', price: 265.00 },
-            '中国平安': { code: 'sh601318', name: '中国平安', price: 48.50 },
             '招商银行': { code: 'sh600036', name: '招商银行', price: 35.20 },
             '五粮液': { code: 'sz000858', name: '五粮液', price: 145.00 },
             '美的集团': { code: 'sz000333', name: '美的集团', price: 58.00 }
@@ -319,7 +345,7 @@ const API = {
         return {
             code: 'sh600000',
             name: stockName,
-            price: 10.00,
+            price: 1000,
             platform: '沪A'
         };
     },
@@ -372,10 +398,13 @@ const API = {
 
     /**
      * 从腾讯API获取价格
+     * 腾讯API支持批量查询，多个代码用逗号分隔
+     * 例如: https://qt.gtimg.cn/q=sh600519,hk00700,sz000001
      */
     async _fetchFromTencent(codes) {
         try {
-            const queryStr = codes.map(code => 'v_' + code).join('');
+            // 腾讯API批量查询使用逗号分隔，不需要v_前缀
+            const queryStr = codes.join(',');
             const url = this.TENCENT_API + queryStr;
 
             const response = await fetch(url);
@@ -390,6 +419,11 @@ const API = {
 
     /**
      * 解析腾讯API响应
+     * 腾讯API返回格式（A股和港股通用）：
+     * v_sh600519="1~贵州茅台~600519~1207.68~..."
+     * v_hk00700="100~腾讯控股~00700~428.800~..."
+     * 第4个字段（索引3）是当前价
+     * 注意：字段分隔符是 ~ 不是逗号
      */
     _parseTencentResponse(text, codes) {
         const prices = {};
@@ -397,17 +431,25 @@ const API = {
         try {
             const lines = text.split('\n');
             
-            lines.forEach((line, index) => {
-                if (line.trim() && index < codes.length) {
-                    const match = line.match(/"([^"]+)"/);
-                    if (match) {
-                        const fields = match[1].split(',');
-                        if (fields.length > 0 && fields[0]) {
-                            const price = parseFloat(fields[0]);
-                            if (!isNaN(price)) {
-                                prices[codes[index]] = price;
-                            }
-                        }
+            lines.forEach((line) => {
+                if (!line.trim()) return;
+                
+                // 提取股票代码：从 v_xxx 格式中提取
+                const codeMatch = line.match(/v_([a-z]+\d+)="/);
+                if (!codeMatch) return;
+                
+                const code = codeMatch[1];
+                
+                // 提取引号内的数据字段
+                const dataMatch = line.match(/"([^"]+)"/);
+                if (!dataMatch) return;
+                
+                // 注意：腾讯API的字段分隔符是 ~ 不是逗号
+                const fields = dataMatch[1].split('~');
+                if (fields.length >= 4) {
+                    const price = parseFloat(fields[3]);
+                    if (!isNaN(price) && price > 0) {
+                        prices[code] = price;
                     }
                 }
             });
@@ -462,6 +504,52 @@ const API = {
         }
 
         return prices;
+    },
+
+    /**
+     * 获取港币兑人民币汇率
+     * 优先从东方财富API获取实时汇率，失败则使用默认值0.91
+     * @returns {Promise<number>} - 汇率值，如 0.91
+     */
+    async fetchExchangeRate() {
+        // 默认汇率
+        const DEFAULT_RATE = 0.91;
+        
+        try {
+            // 尝试从东方财富获取实时汇率（港币兑人民币）
+            // 使用JSONP方式
+            const url = 'https://push2.eastmoney.com/api/qt/ulist.np/get?fields=f2,f12,f14&secids=116.HKDCNH';
+            
+            let data;
+            try {
+                data = await this.jsonpRequest(url);
+            } catch (e) {
+                // JSONP失败，尝试fetch
+                try {
+                    const resp = await fetch(url, {
+                        headers: { 'Referer': 'https://www.eastmoney.com/' }
+                    });
+                    data = await resp.json();
+                } catch (fetchError) {
+                    console.warn('获取实时汇率失败，使用默认值:', fetchError);
+                    return DEFAULT_RATE;
+                }
+            }
+            
+            // 解析东方财富返回的汇率数据
+            // 返回格式: {"data":{"f2":0.91,"f12":"HKDCNH","f14":"港币/人民币"}}
+            if (data && data.data && data.data.f2) {
+                const rate = parseFloat(data.data.f2);
+                if (!isNaN(rate) && rate > 0) {
+                    return rate;
+                }
+            }
+            
+            return DEFAULT_RATE;
+        } catch (error) {
+            console.warn('获取汇率失败，使用默认值:', error);
+            return DEFAULT_RATE;
+        }
     },
 
     /**

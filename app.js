@@ -141,6 +141,15 @@ const App = {
                 }
             }
 
+            // 判断是否为港股，获取汇率
+            const isHK = stockInfo.code && stockInfo.code.startsWith('hk');
+            let exchangeRate = 1;
+            if (isHK) {
+                this.showMessage('正在获取港币汇率...', 'info');
+                exchangeRate = await API.fetchExchangeRate();
+                this.state.exchangeRate = exchangeRate;
+            }
+
             this.state.currentStockInfo = stockInfo;
             this.state.currentPrices = { [stockInfo.code]: stockInfo.price };
 
@@ -150,6 +159,7 @@ const App = {
                 products,
                 stockInfo,
                 prices: this.state.currentPrices,
+                exchangeRate,
                 timestamp: new Date().toISOString()
             };
 
@@ -159,7 +169,7 @@ const App = {
                 this.renderStockInfoOnly(stockInfo);
             } else {
                 // 生成完整结果表格
-                this.renderResultsTable(parseResult, products, stockInfo);
+                this.renderResultsTable(parseResult, products, stockInfo, exchangeRate);
             }
 
             // 更新成交反馈区域的股票信息
@@ -180,47 +190,60 @@ const App = {
      */
     updateFeedbackStockInfo(stockInfo) {
         const infoDiv = document.getElementById('feedbackStockInfo');
-        infoDiv.innerHTML = `
+        const isHK = stockInfo.code && stockInfo.code.startsWith('hk');
+        const exchangeRate = this.state.exchangeRate || 1;
+        let html = `
             <div class="stock-info-item"><strong>${stockInfo.name}</strong></div>
             <div class="stock-info-item">代码: ${stockInfo.code}</div>
             <div class="stock-info-item">平台: ${stockInfo.platform}</div>
-            <div class="stock-info-item">现价: ¥${stockInfo.price.toFixed(2)}</div>
+            <div class="stock-info-item">现价: ${stockInfo.price.toFixed(2)}${isHK ? ' HKD' : ' ¥'}</div>
         `;
+        if (isHK) {
+            html += `<div class="stock-info-item">汇率: 1 HKD = ${exchangeRate} CNY</div>`;
+            html += `<div class="stock-info-item">折合: ¥${(stockInfo.price * exchangeRate).toFixed(2)}</div>`;
+        }
+        infoDiv.innerHTML = html;
         infoDiv.style.display = 'flex';
     },
 
     /**
      * 生成结果表格 - 新布局
      * 表头：平台、证券代码、证券名称、现价、百分比、各产品股数
+     * @param {Object} parseResult - 解析结果
+     * @param {Array} products - 产品列表
+     * @param {Object} stockInfo - 股票信息
+     * @param {number} exchangeRate - 汇率（港股需要换算，A股为1）
      */
-    renderResultsTable(parseResult, products, stockInfo) {
+    renderResultsTable(parseResult, products, stockInfo, exchangeRate = 1) {
         const tbody = document.getElementById('resultsTableBody');
         tbody.innerHTML = '';
 
         const selectedProducts = products.filter(p => parseResult.selectedProducts.includes(p.id));
         const price = stockInfo.price;
         const platform = stockInfo.platform || API.getPlatform(stockInfo.code);
+        const isHK = stockInfo.code && stockInfo.code.startsWith('hk');
 
-        // 计算每个产品的股数
+        // 计算每个产品的股数（港股需要乘以汇率换算为人民币）
         const productQuantities = {};
         selectedProducts.forEach(product => {
-            const quantity = this.calculateQuantity(parseResult.points, product.netAssets, price);
+            const quantity = this.calculateQuantity(parseResult.points, product.netAssets, price, exchangeRate);
             productQuantities[product.id] = quantity;
         });
 
         // 计算百分比（使用第一个产品的百分比作为参考，因为价格相同）
         const firstProduct = selectedProducts[0];
         const firstQuantity = productQuantities[firstProduct.id] || 0;
-        const referencePercentage = this.calculatePercentage(firstQuantity, price, firstProduct.netAssets);
+        const referencePercentage = this.calculatePercentage(firstQuantity, price, firstProduct.netAssets, exchangeRate);
 
         // 创建表头
         const thead = document.getElementById('resultsTableHead');
+        const priceUnit = isHK ? 'HKD' : '¥';
         thead.innerHTML = `
             <tr>
                 <th>平台</th>
                 <th>证券代码</th>
                 <th>证券名称</th>
-                <th>现价(¥)</th>
+                <th>现价(${priceUnit})</th>
                 <th>百分比(%)</th>
                 ${selectedProducts.map(p => `<th>${p.name}(股)</th>`).join('')}
             </tr>
@@ -235,18 +258,21 @@ const App = {
         // 格式化证券代码：英文字母+数字格式只显示数字部分
         const displayCode = this._formatStockCode(stockInfo.code);
 
+        // 显示价格：港股显示港币价格，A股显示人民币价格
+        const priceDisplay = isHK ? `${price.toFixed(2)} HKD` : `¥${price.toFixed(2)}`;
+
         let cellsHtml = `
             <td>${platform}</td>
             <td><code style="cursor:pointer" onclick="App.copyToClipboard('${displayCode}')" title="点击复制">${displayCode}</code></td>
             <td>${stockInfo.name}</td>
-            <td class="${priceClass}">¥${price.toFixed(2)}</td>
+            <td class="${priceClass}">${priceDisplay}</td>
             <td>${referencePercentage.toFixed(2)}%</td>
         `;
 
         // 添加每个产品的股数
         selectedProducts.forEach(product => {
             const quantity = productQuantities[product.id];
-            const pct = this.calculatePercentage(quantity, price, product.netAssets);
+            const pct = this.calculatePercentage(quantity, price, product.netAssets, exchangeRate);
             cellsHtml += `<td><strong style="cursor:pointer" onclick="App.copyToClipboard('${quantity}')" title="点击复制">${quantity}</strong><br><small class="pct">${pct.toFixed(2)}%</small></td>`;
         });
 
@@ -260,7 +286,8 @@ const App = {
             stockInfo,
             productQuantities,
             price,
-            platform
+            platform,
+            exchangeRate
         };
     },
 
@@ -324,22 +351,36 @@ const App = {
 
     /**
      * 计算应买卖股数
-     * 公式：股数 = (点数 × 产品净资产 × 0.01) / 现价 → 四舍五入到百位
+     * 公式：股数 = (点数 × 产品净资产 × 0.01) / 调整后价格 → 四舍五入到百位
+     * 调整后价格：港股价格 × 汇率，A股价格不变
+     * @param {number} points - 点数
+     * @param {number} netAssets - 产品净资产（人民币）
+     * @param {number} price - 股票价格（港股为港币，A股为人民币）
+     * @param {number} exchangeRate - 汇率（港股默认为0.91，A股为1）
+     * @returns {number} - 股数
      */
-    calculateQuantity(points, netAssets, price) {
+    calculateQuantity(points, netAssets, price, exchangeRate = 1) {
         if (price === 0) return 0;
-        const quantity = (points * netAssets * 0.01) / price;
+        // 港股价格需要乘以汇率换算为人民币
+        const adjustedPrice = price * exchangeRate;
+        const quantity = (points * netAssets * 0.01) / adjustedPrice;
         // 四舍五入到百位
         return Math.round(quantity / 100) * 100;
     },
 
     /**
      * 计算百分比
-     * 公式：百分比 = (股数 × 现价) / 产品净资产 × 100%
+     * 公式：百分比 = (股数 × 调整后价格) / 产品净资产 × 100%
+     * @param {number} quantity - 股数
+     * @param {number} price - 股票价格（港股为港币，A股为人民币）
+     * @param {number} netAssets - 产品净资产（人民币）
+     * @param {number} exchangeRate - 汇率（港股默认为0.91，A股为1）
+     * @returns {number} - 百分比
      */
-    calculatePercentage(quantity, price, netAssets) {
+    calculatePercentage(quantity, price, netAssets, exchangeRate = 1) {
         if (netAssets === 0) return 0;
-        return (quantity * price / netAssets) * 100;
+        const adjustedPrice = price * exchangeRate;
+        return (quantity * adjustedPrice / netAssets) * 100;
     },
 
     /**
@@ -393,6 +434,16 @@ const App = {
                 return;
             }
 
+            // 判断是否为港股，刷新汇率
+            const isHK = stockInfo.code && stockInfo.code.startsWith('hk');
+            let exchangeRate = this.state.currentTrade.exchangeRate || 1;
+            if (isHK) {
+                this.showMessage('正在刷新港币汇率...', 'info');
+                exchangeRate = await API.fetchExchangeRate();
+                this.state.exchangeRate = exchangeRate;
+                this.state.currentTrade.exchangeRate = exchangeRate;
+            }
+
             this.state.currentStockInfo = stockInfo;
             this.state.currentPrices = { [stockInfo.code]: stockInfo.price };
             this.state.currentTrade.stockInfo = stockInfo;
@@ -402,7 +453,8 @@ const App = {
             this.renderResultsTable(
                 this.state.currentTrade.parseResult,
                 this.state.currentTrade.products,
-                stockInfo
+                stockInfo,
+                exchangeRate
             );
 
             // 更新成交反馈区域的股票信息
